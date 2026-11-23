@@ -1,0 +1,30 @@
+# The environment for the Elliptic++ address task with transaction-history input: a harness exp.yaml.
+# Data rows are built by pipelines/elliptic_elephant/01_build_data.sh (Bingqiao's scripts) into $DMRSI_DATA.
+# trsi copies this file per trial into its own workspace (unique name, one seed, the candidate's overrides);
+# keep overrides empty here.
+#
+# Eval set choice: the full validation set (time steps 30-34, 24,225 addresses) so that candidates are compared on
+# the same rows the team reports. It is about 6x slower to evaluate during training than val_sub4000.jsonl; with
+# val_sub4000 the comparison is cheaper but noisier (about 300 positives), and the margins in run.yaml should then be
+# re-measured.
+
+name: elliptic-txhist
+
+data:
+  adapter: onejev_rows
+  train: $DMRSI_DATA/data/onejev/addr_txhist_noul/train.jsonl
+  eval:
+    val:
+      train_labels: $DMRSI_DATA/data/onejev/addr_txhist_noul/val.jsonl
+
+fields:
+  label: target.yes          # P(illicit) = P(yes)
+  group: meta.state_id       # address
+  text: state_json
+
+evaluator:
+  type: binary_decision
+  gate: true
+
+seeds: [0]
+overrides: {}

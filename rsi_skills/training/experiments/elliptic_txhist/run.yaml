@@ -1,0 +1,58 @@
+# Training RSI on Elliptic++ txhist: where the search starts, what it may change, and the rules.
+# Source the env file first ($DMRSI_HOME, $OJH_REPO); `python -m trsi check run.yaml --ojh` checks everything without
+# cards. The user approved this space on <date>: fill in before the first launch.
+
+run_name: txhist-r1
+out_dir: $DMRSI_HOME/trsi/elliptic-txhist
+exp: exp.yaml
+
+ojh:
+  bin: $OJH_REPO/.venv/bin/ojh
+  env_file: $DMRSI_HOME/dmrsi-env.sh
+
+start:
+  base: elephant-1
+  recipe: ../../configs/recipes/elephant_lora_1g.yaml
+  overrides: {}
+  note: Elliptic team recipe (elephant-1 LoRA, 1 card)
+
+space:
+  bases: [elephant-1, mammoth-1]
+  recipes:
+    - ../../configs/recipes/elephant_lora_1g.yaml
+    - ../../configs/recipes/mammoth_lora_1g.yaml
+  overrides:
+    onejev.lr: {values: [2.5e-5, 5.0e-5, 1.0e-4, 2.0e-4]}
+    onejev.epochs:
+      values: [1, 2]
+      dead: {2: "OneJev direct runs 2026-11-22: 0.876 / 0.869 / 0.919, mean -0.014 vs the team recipe"}
+    onejev.brier_weight:
+      values: [0, 1, 3]
+      dead: {3: "2026-11-22: 0.831 / 0.721 / 0.907, mean -0.082"}
+    onejev.accum_rows:
+      values: [32, 64, 128]
+      dead: {32: "2026-11-22: 0.876 / 0.902, mean -0.005"}
+    onejev.no_augment:
+      values: [true]
+      dead: {true: "2026-11-22: 0.782 / 0.886 / 0.811, mean -0.076"}
+    lora.r: {values: [8, 32, 128]}
+    lora.target_modules:
+      values: ["q_proj,k_proj,v_proj,o_proj", "gate_proj,up_proj,down_proj"]
+
+gpus:
+  ids: [0, 1]                 # fill in the cards the user approves on the GPU machine
+  allow_shared: false
+
+metric:
+  primary: auprc
+  guards: {ece: 0.02, brier: 0.005}
+
+rules:
+  seeds: [0, 1, 2]
+  probe_margin: 0.035         # 2 x the team recipe's seed std (0.0175) in the OneJev direct runs
+  accept_margin: 0.035
+
+budget:
+  gpu_hours: 100
+  gpu_factor: {H200: 1.7, H100: 1.45}
+  estimate: {elephant-1: 8, mammoth-1: 23}

@@ -1,0 +1,49 @@
+# trsi run configuration. Copy it next to your environment exp.yaml and fill it in; relative paths are relative to
+# this file, $VAR and ~ are expanded when trsi reads it (source your env file first).
+# The user approves `space`, `gpus` and `budget` before the first launch (SKILL.md step 1).
+
+run_name: my-task-r1                 # records go to <out_dir>/<run_name>/; change it whenever rules/space/budget change
+out_dir: $DMRSI_HOME/trsi/my-task    # outside the repo; trials/ under it is shared by every run with this out_dir
+
+exp: exp.yaml                        # the environment: a harness exp.yaml (data, fields, evaluator), overrides: {}
+
+ojh:
+  bin: $OJH_REPO/.venv/bin/ojh       # the harness CLI
+  env_file: $DMRSI_HOME/dmrsi-env.sh # optional: sourced in the same command before ojh (non-interactive shells)
+  # machine: ~/machine.yaml          # optional harness machine.yaml
+
+start:                               # where the search begins: usually the team recipe
+  base: elephant-1
+  recipe: recipes/elephant_lora_1g.yaml
+  overrides: {}
+  note: team recipe
+
+space:                               # what the user approved; launch refuses anything else
+  bases: [elephant-1, mammoth-1]     # names from the harness catalog (catalog/bases/)
+  recipes:                           # harness recipe files; the training mode (full / lora) and GPU count live here
+    - recipes/elephant_lora_1g.yaml
+    - recipes/mammoth_lora_1g.yaml
+  overrides:                         # only onejev.<flag> and lora.<field>; see reference/search_space.md
+    onejev.lr: {values: [2.5e-5, 5.0e-5, 1.0e-4, 2.0e-4]}
+    onejev.brier_weight:
+      values: [0, 1, 3]
+      dead: {3: "why it is a dead end, with the evidence"}   # refused unless --force
+    lora.r: {range: [8, 128]}        # a numeric range instead of a list
+
+gpus:
+  ids: [0, 1]                        # cards trsi may use; the harness still checks they are free
+  allow_shared: false                # true only if the user agreed to share cards with other processes
+
+metric:
+  primary: auprc                     # auprc or auc: compares schemes on the select part of the eval sets
+  guards: {ece: 0.02, brier: 0.005}  # mean worsening allowed for an accepted candidate
+
+rules:
+  seeds: [0, 1, 2]                   # the first one is the probe seed
+  probe_margin: 0.035                # probe seed must beat the incumbent's same seed by more than this
+  accept_margin: 0.035               # mean over seeds must beat the incumbent by more than this
+
+budget:
+  gpu_hours: 100                     # the start's seeds are not charged; failed trials are
+  gpu_factor: {H200: 1.7, H100: 1.45}  # optional: GPU name substring -> A100-equivalent factor (default 1)
+  estimate: {elephant-1: 8, mammoth-1: 23}   # GPU hours of one seed, used before a trial of that base finishes
