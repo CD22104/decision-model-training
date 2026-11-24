@@ -20,7 +20,9 @@ data:
 fields:
   label: target.yes          # P(illicit) = P(yes)
   group: meta.state_id       # address
-  text: state_json
+  # No `text` field on purpose. With it, harness finalize also fits TF-IDF and length baselines on the CPU while the
+  # runner still holds the GPU; GPU watchdogs that kill processes idle on the GPU for ~10 minutes (xtrah200) then
+  # kill finalize after training has finished. trsi does not use those baselines.
 
 evaluator:
   type: binary_decision

@@ -12,6 +12,8 @@
 
 还没有在真的 harness 上跑过一轮；第一轮会用 `experiments/elliptic_txhist/`。
 
+2026-11-24 在 xtrah200（H200）上用真的 harness 做了冒烟：elephant-1 LoRA，30 步，在验证子集上评。起点和一个候选（学习率减半）都训练并收尾完成；`collect` 算出的 AUC 和 harness 自己报的一致到小数点后 4 位；`next` 按规则拒绝了候选（种子 0 低 0.027）。为此 `experiments/elliptic_txhist/exp.yaml` 去掉了 `fields.text`，故障表加了 H 系列卡补装包和显卡看门狗两条。
+
 ### 依据：这之前在 Elliptic 上直接用 OneJev 试过的做法（v0）
 
 v0 是一个自动循环：每轮先对很多选项做 400 步的短跑筛选，入围的直接跑 3 个种子的完整训练。在 Elliptic 交易历史输入上跑了 3 轮（约 287 A100 卡时），没有找到比团队配方更好的方案，并发现：

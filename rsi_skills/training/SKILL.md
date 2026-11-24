@@ -102,5 +102,7 @@ prediction: {auprc: 0.91, p_accept: 0.3}
 | `launch` 说 comes after the probe | 先 `collect`、`next`，探针过了才补种子 |
 | `ojh run` 非零退出（卡忙、不可行、没有默认配方） | 原样告诉用户，由用户选替代方案 |
 | `collect` 显示 failed | 看 run 目录的 `DONE`、`runner.log`，按 `training-with-onejev` 的故障表处理。卡时照记。修好后用同一条命令重跑 |
+| H100、H200 上第 1 步反向就失败，日志要求装 tilelang（`DONE` 的 stage 是 train） | harness 的安装脚本在 Hopper 卡上漏了 tilelang 和 causal-conv1d。告诉用户，经同意后按 `reference/lessons.md` 的"环境上踩过的坑"补装，并在机器配置的 `env` 里设 `CUDA_HOME` |
+| 训练已经完成，收尾被 signal 15 杀掉（`DONE` 的 stage 是 finalize） | 机器上的显卡看门狗杀了长时间不用卡的进程：exp.yaml 有 `fields.text` 时，收尾会在 CPU 上训文本基线，同时占着卡。告诉用户。去掉 `text` 要改环境 exp.yaml，等于换了环境：经用户同意后开新的 `run_name`，旧试验不会复用 |
 | `next` 说 incumbent seeds not finished | 起点的种子还没跑完或没接过来，先补齐 |
 | 两个 run.yaml 的结果互相"复用" | 复用要求基座、配方内容、overrides、种子和环境 exp.yaml 内容都相同，这是预期行为；不想复用就换 `out_dir` |

@@ -52,3 +52,5 @@
 | 存 checkpoint 时爆显存 | 存盘要额外显存，邻居此刻用量低于峰值 | 估显存时按峰值加存盘余量 |
 | 批大小改动实际多看或少看样本（accum_rows 32 多 27%，128 少 12%） | 每步实际装进的行数随行长变化 | 比较时看日志里实际每步的样本数 |
 | 逐步损失在 0.01 和 0.7–1.0 之间跳 | 长度相近的行同批，而长度和标签强相关 | 看曲线先平滑，不要据此判断训练坏了 |
+| H100、H200 上经 harness 训练，第 1 步反向就失败，要求装 tilelang | flash-linear-attention 0.5.2 在 Hopper 卡上不用 Triton 3.4 的反向内核，改用 tilelang；harness 的 `setup.sh` 没装 tilelang 和 causal-conv1d。tilelang 即时编译要 CUDA 12.8 的 nvcc，系统自带的 12.0 和 gcc 13 不兼容 | 在 harness 的环境里补装 tilelang 0.1.15、causal-conv1d 1.7.0（带上 harness 的 `-c constraints.txt`，causal-conv1d 加 `--no-build-isolation`，安装时设 `CUDA_HOME=/usr/local/cuda-12.8`）；机器配置的 `env` 里设 `CUDA_HOME` 和把 `/usr/local/cuda-12.8/bin` 放到 `PATH` 前面。torch、triton、flash-linear-attention 的版本不动 |
+| 训练完成，harness 收尾被 signal 15 杀掉（xtrah200） | 机器上的显卡看门狗：一个进程 10 分钟里用卡的时间不到 20% 就先警告、2 分钟后杀掉；一个用户 20 分钟里总用卡率低于 10% 会被强制登出。收尾先在验证集上重新打分（用卡，约 4.5 分钟），exp.yaml 有 `fields.text` 时接着在 CPU 上训 TF-IDF 和长度基线，这时进程还占着卡 | exp.yaml 不设 `fields.text`（`experiments/elliptic_txhist/exp.yaml` 已去掉）；不要让进程占着卡空等 |
